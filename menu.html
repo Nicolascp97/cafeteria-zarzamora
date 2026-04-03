@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Zarzamora · Menú · Mesa 5</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#ebb2ff",
+        "on-primary": "#500a6c",
+        "primary-container": "#9b59b6",
+        "on-primary-container": "#fffbff",
+        "secondary": "#ffdd74",
+        "on-secondary": "#3c2f00",
+        "secondary-container": "#ebbf01",
+        "on-secondary-container": "#624e00",
+        "tertiary": "#eabda0",
+        "on-tertiary": "#452a16",
+        "tertiary-container": "#916c53",
+        "surface": "#131313",
+        "surface-dim": "#131313",
+        "surface-bright": "#393939",
+        "surface-container-lowest": "#0e0e0e",
+        "surface-container-low": "#1c1b1b",
+        "surface-container": "#20201f",
+        "surface-container-high": "#2a2a2a",
+        "surface-container-highest": "#353535",
+        "surface-variant": "#353535",
+        "on-surface": "#e5e2e1",
+        "on-surface-variant": "#d0c2d1",
+        "background": "#131313",
+        "outline": "#998d9a",
+        "outline-variant": "#4d434f",
+        "error": "#ffb4ab",
+        "error-container": "#93000a",
+      },
+      fontFamily: {
+        "headline": ["Noto Serif", "serif"],
+        "body": ["Inter", "sans-serif"],
+        "label": ["Inter", "sans-serif"],
+      },
+      borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+    },
+  },
+}
+</script>
+<style>
+/* ══════════════════════════════════════
+   BASE
+══════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --ease-spring:   cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+}
+
+/* ══════════════════════════════════════
+   VIDEO BACKGROUND — 3-LAYER MASK SYSTEM
+   (GPU-safe: only fixed layers, no blur on scroll)
+══════════════════════════════════════ */
+
+/* The video sits fixed, full-viewport behind everything */
+.video-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.video-bg video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  /* desaturate + darken so it never overpowers content */
+  filter: saturate(0.7) brightness(0.75);
+  will-change: transform;
+  /* slight oversizing so scroll-scrub doesn't show edges */
+  transform: scale(1.06);
+}
+
+/* Layer 2 — vignette suave: solo bordes y header */
+.video-mask-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    /* top bar — sombra suave para legibilidad del header */
+    linear-gradient(
+      to bottom,
+      rgba(8, 6, 5, 0.55) 0%,
+      rgba(8, 6, 5, 0.08) 12%,
+      transparent 22%
+    ),
+    /* bottom fade — arranque de la zona de cards */
+    linear-gradient(
+      to top,
+      rgba(8, 6, 5, 0.72) 0%,
+      rgba(8, 6, 5, 0.28) 14%,
+      transparent 32%
+    );
+}
+
+/* Layer 3 — fixed grain overlay (zero scroll-repaint cost) */
+.video-mask-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 192px 192px;
+}
+
+/* ══════════════════════════════════════
+   SCROLL-PROGRESS INDICATOR
+   (thin line at top showing video progress)
+══════════════════════════════════════ */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  z-index: 200;
+  background: linear-gradient(to right, #9b59b6, #ffdd74, #ebb2ff);
+  transform-origin: left;
+  transition: width 0.05s linear;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════
+   PAGE SHELL — sits above video layers
+══════════════════════════════════════ */
+body {
+  background: #131313;
+  min-height: 100dvh;
+  position: relative;
+  z-index: 10;
+}
+
+/* ══════════════════════════════════════
+   TOP APP BAR — glass pill (fixed)
+   backdrop-blur ONLY on fixed elements (perf rule)
+══════════════════════════════════════ */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  background: rgba(8, 6, 5, 0.68);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.03), 0 8px 32px rgba(0,0,0,0.35);
+}
+
+/* ══════════════════════════════════════
+   CATEGORY NAV BAR — glass (fixed)
+══════════════════════════════════════ */
+.catbar {
+  position: fixed;
+  top: 4.5rem;
+  left: 0;
+  width: 100%;
+  z-index: 99;
+  background: rgba(8, 6, 5, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 0.5rem 1.5rem;
+}
+
+/* ══════════════════════════════════════
+   PRODUCT CARD — Double-Bezel architecture
+══════════════════════════════════════ */
+.card-shell {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.125rem;
+  padding: 3px;
+  /* no backdrop-blur here — scrolling container, kills mobile GPU */
+  box-shadow:
+    0 2px 12px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: transform 0.45s var(--ease-spring), box-shadow 0.45s var(--ease-spring);
+}
+
+.card-shell:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(255,255,255,0.07),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.card-inner {
+  background: rgba(18, 15, 13, 0.82);
+  border-radius: calc(1.125rem - 3px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  padding: 1.25rem;
+  display: flex;
+  gap: 1rem;
+}
+
+/* Section headers */
+.section-heading {
+  font-family: 'Noto Serif', serif;
+  font-size: 1.85rem;
+  font-weight: 400;
+  color: #e5e2e1;
+  letter-spacing: -0.02em;
+}
+
+/* Add-to-cart button micro-physics */
+.add-btn {
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s ease;
+}
+.add-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(235,178,255,0.3);
+}
+.add-btn:active {
+  transform: scale(0.9);
+  transition-duration: 0.12s;
+}
+
+/* Badge pulse */
+.badge-pulse {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Collapsible */
+.section-collapsed { display: none; }
+.chevron-open { transform: rotate(180deg); }
+
+/* Cart drawer spring transition */
+#cart-drawer {
+  transition: transform 0.42s var(--ease-spring);
+}
+
+/* Scroll entry animation for content sections */
+.fade-entry {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s var(--ease-out-expo), transform 0.6s var(--ease-out-expo);
+}
+.fade-entry.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+
+<!-- ═══════════════════════════════
+     VIDEO BACKGROUND LAYERS
+═══════════════════════════════ -->
+<body class="text-on-surface font-body selection:bg-primary/30">
+
+<!-- SCROLL-DRIVEN HERO SECTION (Canvas Frame Sequence — Apple-style) -->
+<section id="hero-scrub" class="relative h-[300vh] w-full bg-[#131313]">
+  <div class="sticky top-0 h-[100dvh] w-full overflow-hidden flex flex-col items-center justify-center">
+    <!-- Canvas replaces <video> for instant frame access -->
+    <canvas
+      id="hero-canvas"
+      class="absolute inset-0 w-full h-full"
+      style="will-change: transform; transform: translate3d(0,0,0); filter: brightness(0.55) sepia(0.25) hue-rotate(250deg) saturate(1.4);"
+    ></canvas>
+    
+    <!-- Mask / Gradient Overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-[#131313] via-transparent to-[#131313]/50 pointer-events-none z-10"></div>
+    <div class="video-mask-grain" style="z-index: 10;" aria-hidden="true"></div>
+    
+    <!-- Loading indicator (shown while frames preload) -->
+    <div id="hero-loader" class="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-[#131313] transition-opacity duration-700">
+      <div class="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      <span id="hero-loader-pct" class="text-xs text-on-surface-variant/60 font-mono tracking-widest">0%</span>
+    </div>
+
+    <!-- Scrub Info Panels -->
+    <div class="relative z-20 px-6 max-w-sm mx-auto text-center mt-20">
+      <div id="scrub-txt-1" class="absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-0 flex flex-col items-center" style="transition: opacity 0.5s ease, transform 0.5s ease;">
+        <h2 class="font-headline text-3xl font-bold text-secondary tracking-tight mb-2 drop-shadow-md">La Gota Perfecta</h2>
+        <p class="text-sm font-body text-on-surface-variant drop-shadow-md">Cada extracción encapsula la esencia de nuestro tostado artesanal.</p>
+      </div>
+      
+      <div id="scrub-txt-2" class="absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-0 flex flex-col items-center" style="transition: opacity 0.5s ease, transform 0.5s ease;">
+        <h2 class="font-headline text-4xl font-bold text-primary tracking-tight mb-2 drop-shadow-md">Presión y Tiempo</h2>
+        <p class="text-sm font-body text-on-surface-variant drop-shadow-md">El equilibrio absoluto para resaltar notas que nunca olvidarás.</p>
+      </div>
+      
+      <div id="scrub-txt-3" class="absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-0 flex flex-col items-center" style="transition: opacity 0.5s ease, transform 0.5s ease;">
+        <h2 class="font-headline text-3xl font-bold text-on-surface tracking-tight mb-2 drop-shadow-md">Bienvenido a Zarzamora</h2>
+        <p class="text-xs tracking-[0.2em] uppercase font-bold text-secondary mb-4 drop-shadow-md">Menú de Especialidad</p>
+        <div class="w-10 h-10 rounded-full border border-primary/30 flex items-center justify-center animate-bounce text-primary drop-shadow-md shadow-xl bg-black/40 backdrop-blur-md">
+          <span class="material-symbols-outlined">south</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Scroll-progress bar -->
+<div class="scroll-progress-bar" id="scroll-progress-bar" aria-hidden="true"></div>
+
+<!-- ═══════════════════════
+     TOP APP BAR
+═══════════════════════ -->
+<header class="topbar">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-headline font-bold shadow-lg text-base flex-shrink-0">
+      Z
+    </div>
+    <div class="flex flex-col">
+      <h1 class="text-lg font-headline font-bold text-secondary tracking-tight leading-none">Zarzamora</h1>
+      <span class="text-[9px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-medium mt-0.5">Café · Restaurante</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-2.5">
+    <div class="bg-secondary/10 px-3 py-1 border border-secondary/20">
+      <span class="text-xs font-bold text-secondary tracking-wider">MESA 5</span>
+    </div>
+    <button onclick="toggleCart()"
+      class="relative p-2 text-primary hover:bg-white/5 transition-colors active:scale-95 duration-200 rounded-sm">
+      <span class="material-symbols-outlined">shopping_cart</span>
+      <span id="cart-badge"
+        class="badge-pulse absolute -top-0.5 -right-0.5 w-5 h-5 bg-primary text-on-primary text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- CATEGORY TABS -->
+<nav class="catbar">
+  <div class="flex justify-center gap-8 max-w-md mx-auto">
+    <button onclick="switchTab('comida')" id="tab-comida"
+      class="text-on-surface-variant/40 hover:text-white transition-all flex items-center gap-2 py-1">
+      <span class="material-symbols-outlined text-sm">restaurant</span>
+      <span class="text-xs uppercase tracking-widest font-label">Comida</span>
+    </button>
+    <button onclick="switchTab('bebidas')" id="tab-bebidas"
+      class="text-secondary font-bold border-b-2 border-secondary flex items-center gap-2 py-1">
+      <span class="material-symbols-outlined text-sm">local_cafe</span>
+      <span class="text-xs uppercase tracking-widest font-label">Bebestibles</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════
+     MAIN CONTENT
+═══════════════════════ -->
+<main class="py-12 px-5 max-w-2xl mx-auto space-y-10 relative z-20 bg-[#131313] rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] -mt-[2.5rem]" id="main-content">
+
+  <!-- Search -->
+  <div class="relative fade-entry">
+    <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-on-surface-variant/60">
+      <span class="material-symbols-outlined">search</span>
+    </div>
+    <input
+      class="w-full bg-black/30 border border-white/8 focus:ring-1 focus:ring-primary/40 rounded-xl py-4 pl-12 pr-4 text-sm placeholder:text-on-surface-variant/40 text-on-surface"
+      placeholder="Buscar en la carta..."
+      type="text"/>
+  </div>
+
+  <!-- ────────────────────────────────
+       TAB: BEBESTIBLES
+  ──────────────────────────────── -->
+  <div id="tab-bebidas-content">
+
+    <!-- Café de Especialidad -->
+    <section class="space-y-5 fade-entry">
+      <div class="flex items-end gap-4 mb-2">
+        <span class="w-8 h-px bg-secondary/40 mb-1.5 flex-shrink-0"></span>
+        <h2 class="section-heading">Café de Especialidad</h2>
+      </div>
+
+      <!-- Card: Café de Origen — ESTRELLA -->
+      <div class="card-shell">
+        <div class="card-inner">
+          <div class="relative w-28 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-surface-container-high flex items-center justify-center border border-outline-variant/10">
+            <span class="material-symbols-outlined text-5xl text-primary/20">coffee</span>
+            <div class="absolute top-2 left-2 bg-primary text-on-primary text-[9px] font-bold px-2 py-0.5 flex items-center gap-1 shadow-md">
+              <span class="material-symbols-outlined text-[10px]" style="font-variation-settings:'FILL' 1">auto_awesome</span>
+              ESTRELLA
+            </div>
+          </div>
+          <div class="flex flex-col justify-between flex-grow min-w-0">
+            <div>
+              <h3 class="font-headline text-lg text-primary mb-1">Café de Origen</h3>
+              <p class="text-xs text-on-surface-variant leading-relaxed line-clamp-2">
+                Grano seleccionado, tostado artesanal. Consulta por el origen del día (V60 / Chemex).
+              </p>
+            </div>
+            <div class="flex items-center justify-between mt-3">
+              <span class="text-base font-bold text-on-surface">$3.800</span>
+              <button onclick="addToCart('Café de Origen', 3800)"
+                class="add-btn bg-primary text-on-primary p-2 rounded-sm shadow-lg">
+                <span class="material-symbols-outlined">add</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Cappuccino -->
+      <div class="card-shell">
+        <div class="card-inner">
+          <div class="relative w-28 h-28 flex-shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center border border-outline-variant/10">
+            <span class="material-symbols-outlined text-5xl text-secondary/20">local_cafe</span>
+          </div>
+          <div class="flex flex-col justify-between flex-grow min-w-0">
+            <div>
+              <h3 class="font-headline text-lg text-secondary mb-1">Cappuccino Italiano</h3>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Doble shot de espresso con leche texturizada sedosa y microespuma perfecta.
+              </p>
+            </div>
+            <div class="flex items-center justify-between mt-3">
+              <span class="text-base font-bold text-on-surface">$3.200</span>
+              <button onclick="addToCart('Cappuccino Italiano', 3200)"
+                class="add-btn bg-primary text-on-primary p-2 rounded-sm shadow-lg">
+                <span class="material-symbols-outlined">add</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Mora Latte -->
+      <div class="card-shell">
+        <div class="card-inner">
+          <div class="relative w-28 h-28 flex-shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center border border-outline-variant/10">
+            <span class="material-symbols-outlined text-5xl text-primary/20">local_drink</span>
+          </div>
+          <div class="flex flex-col justify-between flex-grow min-w-0">
+            <div>
+              <h3 class="font-headline text-lg text-secondary mb-1">Mora Latte</h3>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Espresso, reducción de mora silvestre, leche de avena texturizada.
+              </p>
+            </div>
+            <div class="flex items-center justify-between mt-3">
+              <span class="text-base font-bold text-on-surface">$4.200</span>
+              <button onclick="addToCart('Mora Latte', 4200)"
+                class="add-btn bg-primary text-on-primary p-2 rounded-sm shadow-lg">
+                <span class="material-symbols-outlined">add</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Helados & Fríos (collapsible) -->
+    <section class="space-y-4 fade-entry">
+      <div class="flex items-end gap-4 mb-2">
+        <span class="w-8 h-px bg-secondary/40 mb-1.5 flex-shrink-0"></span>
+        <h2 class="section-heading">Helados &amp; Fríos</h2>
+      </div>
+      <div onclick="toggleSection('frios')"
+        class="card-shell cursor-pointer group">
+        <div class="card-inner items-center justify-between">
+          <div class="flex items-center gap-5">
+            <div class="w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center text-2xl opacity-60 group-hover:scale-110 transition-transform duration-300">
+              🥤
+            </div>
+            <div>
+              <h3 class="font-headline text-lg text-secondary">Frappés &amp; Gelato</h3>
+              <p class="text-xs text-on-surface-variant/50">Affogato, Cold Brew y selección artesanal...</p>
+            </div>
+          </div>
+          <span id="chevron-frios"
+            class="material-symbols-outlined text-on-surface-variant transition-transform duration-300">expand_more</span>
+        </div>
+      </div>
+
+      <div id="section-frios" class="section-collapsed space-y-4">
+        <div class="card-shell">
+          <div class="card-inner">
+            <div class="relative w-28 h-28 flex-shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center">
+              <span class="material-symbols-outlined text-5xl text-[#8BE9FD]/20">water_drop</span>
+            </div>
+            <div class="flex flex-col justify-between flex-grow min-w-0">
+              <div>
+                <h3 class="font-headline text-lg text-secondary mb-1">Cold Brew 12hrs</h3>
+                <p class="text-xs text-on-surface-variant">Extracción lenta. Servido sobre hielo artesanal.</p>
+              </div>
+              <div class="flex items-center justify-between mt-3">
+                <span class="text-base font-bold text-on-surface">$3.500</span>
+                <button onclick="addToCart('Cold Brew 12hrs', 3500)"
+                  class="add-btn bg-primary text-on-primary p-2 rounded-sm shadow-lg">
+                  <span class="material-symbols-outlined">add</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-shell">
+          <div class="card-inner">
+            <div class="relative w-28 h-28 flex-shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center">
+              <span class="material-symbols-outlined text-5xl text-tertiary/20">ac_unit</span>
+            </div>
+            <div class="flex flex-col justify-between flex-grow min-w-0">
+              <div>
+                <h3 class="font-headline text-lg text-secondary mb-1">Affogato Clásico</h3>
+                <p class="text-xs text-on-surface-variant">Gelato de vainilla napado con espresso doble caliente.</p>
+              </div>
+              <div class="flex items-center justify-between mt-3">
+                <span class="text-base font-bold text-on-surface">$4.000</span>
+                <button onclick="addToCart('Affogato Clásico', 4000)"
+                  class="add-btn bg-primary text-on-primary p-2 rounded-sm shadow-lg">
+                  <span class="material-symbols-outlined">add</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /tab-bebidas-content -->
+
+  <!-- ────────────────────────────────
+       TAB: COMIDA
+  ──────────────────────────────── -->
+  <div id="tab-comida-content" class="hidden">
+
+    <!-- Pastelería de Autor -->
+    <section class="space-y-5 fade-entry">
+      <div class="flex items-end gap-4 mb-2">
+        <span class="w-8 h-px bg-secondary/40 mb-1.5 flex-shrink-0"></span>
+        <h2 class="section-heading">Pastelería de Autor</h2>
+      </div>
+
+      <!-- Torta Zarzamora — FAVORITO -->
+      <div class="card-shell">
+        <div class="card-inner">
+          <div class="relative w-28 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-surface-container-high flex items-center justify-center border border-outline-variant/10">
+            <span class="material-symbols-outlined text-5xl text-primary/20">cake</span>
+            <div class="absolute top-2 left-2 bg-secondary text-on-secondary text-[9px] font-bold px-2 py-0.5 flex items-center gap-1 shadow-md">
+              <span class="material-symbols-outlined text-[10px]" style="font-variation-settings:'FILL' 1">star</span>
+              FAVORITO
+            </div>
+          </div>
+          <div class="flex flex-col justify-between flex-grow min-w-0">
+            <div>
+              <h3 class="font-headline text-lg text-secondary mb-1">Torta Zarzamora</h3>
+              <p class="text-xs text-on-surface-variant leading-relaxed line-clamp-2">
+                Bizcocho artesanal humedecido en frutos del bosque con crema de mora silvestre.
+              </p>
+            </div>
+            <div class="flex items-center justify-between mt-3">
+              <div class="flex flex-col">
+                <span class="text-[10px] text-on-surface-variant/40 line-through">$6.000</span>
+                <span class="text-base font-bold text-on-surface">$4.500</span>
+              </div>
+              <button onclick="addToCart('Torta Zarzamora', 4500)"
+                class="add-btn bg-primary text-on-primary p-2 rounded-sm shadow-lg">
+                <span class="material-symbols-outlined">add</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Canelés de Bordeaux -->
+      <div class="card-shell">
+        <div class="card-inner">
+          <div class="relative w-28 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-surface-container-high flex items-center justify-center border border-outline-variant/10">
+            <span class="material-symbols-outlined text-5xl text-tertiary/20">bakery_dining</span>
+            <div class="absolute bottom-2 left-2 bg-primary-container/80 text-on-primary-container text-[8px] font-medium px-2 py-0.5 flex items-center gap-1">
+              <span class="material-symbols-outlined text-[10px]">schedule</span>
+              DISPONIBLE HOY
+            </div>
+          </div>
+          <div class="flex flex-col justify-between flex-grow min-w-0">
+            <div>
+              <h3 class="font-headline text-lg text-secondary mb-1">Canelés de Bordeaux</h3>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Pack de 2 unidades. Corazón tierno y corteza caramelizada.
+              </p>
+            </div>
+            <div class="flex items-center justify-between mt-3">
+              <span class="text-base font-bold text-on-surface">$2.000</span>
+              <button onclick="addToCart('Canelés de Bordeaux', 2000)"
+                class="add-btn bg-primary text-on-primary p-2 rounded-sm shadow-lg">
+                <span class="material-symbols-outlined">add</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Salados (collapsible) -->
+    <section class="space-y-4 fade-entry">
+      <div class="flex items-end gap-4 mb-2">
+        <span class="w-8 h-px bg-secondary/40 mb-1.5 flex-shrink-0"></span>
+        <h2 class="section-heading">Salados &amp; Sandwiches</h2>
+      </div>
+      <div onclick="toggleSection('salados')" class="card-shell cursor-pointer group">
+        <div class="card-inner items-center justify-between">
+          <div class="flex items-center gap-5">
+            <div class="w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center text-2xl opacity-60 group-hover:scale-110 transition-transform duration-300">
+              🥪
+            </div>
+            <div>
+              <h3 class="font-headline text-lg text-secondary">Ver Variedades</h3>
+              <p class="text-xs text-on-surface-variant/50">Ciabattas, Croissants y más...</p>
+            </div>
+          </div>
+          <span id="chevron-salados"
+            class="material-symbols-outlined text-on-surface-variant transition-transform duration-300">expand_more</span>
+        </div>
+      </div>
+      <div id="section-salados" class="section-collapsed space-y-4">
+        <div class="card-shell">
+          <div class="card-inner">
+            <div class="relative w-28 h-28 flex-shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center">
+              <span class="material-symbols-outlined text-5xl text-tertiary/20">lunch_dining</span>
+            </div>
+            <div class="flex flex-col justify-between flex-grow min-w-0">
+              <div>
+                <h3 class="font-headline text-lg text-secondary mb-1">Tostada de Palta</h3>
+                <p class="text-xs text-on-surface-variant">Sourdough tostado, palta machacada, tomates cherry, huevo pochado.</p>
+              </div>
+              <div class="flex items-center justify-between mt-3">
+                <span class="text-base font-bold text-on-surface">$5.800</span>
+                <button onclick="addToCart('Tostada de Palta', 5800)"
+                  class="add-btn bg-primary text-on-primary p-2 rounded-sm shadow-lg">
+                  <span class="material-symbols-outlined">add</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /tab-comida-content -->
+
+  <!-- Upsell block -->
+  <div class="fade-entry">
+    <div class="card-shell">
+      <div class="card-inner flex-col text-center py-6 px-4">
+        <p class="font-headline text-base mb-3">
+          ¿Lo acompañas con <span class="text-primary italic">Torta Zarzamora</span>?
+        </p>
+        <button onclick="addToCart('Torta Zarzamora', 4500)"
+          class="text-primary font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 mx-auto hover:gap-4 transition-all duration-300">
+          AGREGAR AL PEDIDO
+          <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══════════════════════
+     CART OVERLAY + DRAWER
+═══════════════════════ -->
+<div id="cart-overlay"
+  onclick="closeCart()"
+  class="hidden fixed inset-0 bg-black/50 z-[110] backdrop-blur-sm"></div>
+
+<aside id="cart-drawer"
+  class="fixed inset-y-0 right-0 z-[120] w-full max-w-sm flex flex-col p-8 translate-x-full"
+  style="background: rgba(12,10,9,0.95); border-left: 1px solid rgba(255,255,255,0.07); box-shadow: -24px 0 80px rgba(0,0,0,0.6);">
+
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h2 class="text-2xl font-headline text-primary">Tu Pedido</h2>
+      <p class="text-[10px] font-label uppercase tracking-widest text-on-surface-variant/50 mt-1">Mesa 5 · Confirmar para cocina</p>
+    </div>
+    <button onclick="closeCart()"
+      class="p-2 text-on-surface-variant hover:text-on-surface transition-colors rounded-sm hover:bg-white/5">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <div id="cart-items" class="flex-grow overflow-y-auto pr-1 space-y-5">
+    <p id="cart-empty" class="text-sm text-on-surface-variant/40 italic text-center mt-10">
+      Tu carrito está vacío
+    </p>
+  </div>
+
+  <div class="pt-7 mt-6 border-t border-white/6 space-y-3">
+    <div class="flex justify-between items-center mb-1">
+      <span class="text-xs uppercase tracking-widest text-on-surface-variant/60">Total</span>
+      <span id="cart-total" class="text-2xl font-headline text-secondary">$0</span>
+    </div>
+    <button onclick="confirmOrder()"
+      class="w-full bg-primary-container text-on-primary-container py-4 font-bold uppercase tracking-[0.2em] text-xs shadow-xl active:scale-95 transition-transform duration-150 hover:brightness-110">
+      Confirmar Pedido
+    </button>
+    <button onclick="clearCart()"
+      class="w-full border border-white/8 text-on-surface-variant/60 py-3 text-xs uppercase tracking-widest hover:bg-white/5 transition-colors">
+      Vaciar Carrito
+    </button>
+  </div>
+</aside>
+
+<!-- Mobile sticky order button -->
+<footer class="fixed bottom-5 left-0 w-full z-[90] flex justify-center px-4 md:hidden">
+  <button onclick="toggleCart()"
+    class="bg-black/70 backdrop-blur-xl rounded-full px-6 py-3.5 text-secondary font-bold text-xs uppercase tracking-widest flex items-center gap-2 border border-secondary/20 shadow-2xl hover:scale-105 transition-transform active:scale-95"
+    style="transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);">
+    <span class="material-symbols-outlined text-sm">shopping_cart</span>
+    Ver Pedido (<span id="mobile-cart-count">0</span>)
+  </button>
+</footer>
+
+<!-- Order confirmed toast -->
+<div id="toast"
+  class="fixed top-24 left-1/2 -translate-x-1/2 z-[150] px-6 py-3 font-bold text-sm uppercase tracking-widest shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-3 rounded-sm"
+  style="background: #6B8E6B; color: white; transition-timing-function: var(--ease-out-expo);">
+  <span class="material-symbols-outlined">check_circle</span>
+  ¡Pedido enviado a cocina!
+</div>
+
+<!-- ═══════════════════════
+     SCRIPTS
+═══════════════════════ -->
+<script>
+/* ══════════════════════════════════════════════════
+   SCROLL-DRIVEN CANVAS FRAME SEQUENCE (Apple-style)
+   ──────────────────────────────────────────────────
+   Technique:
+   - 150 JPG frames pre-loaded into memory as Image objects
+   - <canvas> draws the correct frame based on scroll %
+   - ZERO video decoding latency — instant frame access
+   - requestAnimationFrame for 60fps rendering
+   - Smooth LERP interpolation for cinematic feel
+   
+   GPU rules (design-taste skill):
+   - Canvas is GPU-composited via translate3d(0,0,0)
+   - Only transform + opacity on animated text panels
+   - No layout-triggering properties animated
+══════════════════════════════════════════════════ */
+(function () {
+  const TOTAL_FRAMES = 150;
+  const FRAME_PATH = 'cafe_frames/frame_';  // relative to menu.html
+  const FRAME_EXT = '.jpg';
+
+  const canvas = document.getElementById('hero-canvas');
+  const ctx = canvas ? canvas.getContext('2d') : null;
+  const progressBar = document.getElementById('scroll-progress-bar');
+  const scrubSection = document.getElementById('hero-scrub');
+  const loader = document.getElementById('hero-loader');
+  const loaderPct = document.getElementById('hero-loader-pct');
+  const txt1 = document.getElementById('scrub-txt-1');
+  const txt2 = document.getElementById('scrub-txt-2');
+  const txt3 = document.getElementById('scrub-txt-3');
+
+  const frames = [];          // Array of Image objects
+  let loadedCount = 0;
+  let isReady = false;
+  let currentFrame = -1;      // tracks which frame is painted to avoid redundant draws
+  let targetFrame = 0;        // the frame we WANT to show (from scroll)
+  let lerpFrame = 0;          // the frame we're interpolating toward
+  let rafId = null;
+
+  const LERP = 0.35;          // 0.35 = responsive yet smooth
+
+  // ── Pad number to 3 digits: 1 → "001", 42 → "042" ──
+  function pad(n) {
+    return String(n).padStart(3, '0');
+  }
+
+  // ── Preload all frames into memory ──
+  function preloadFrames() {
+    for (let i = 1; i <= TOTAL_FRAMES; i++) {
+      const img = new Image();
+      img.src = FRAME_PATH + pad(i) + FRAME_EXT;
+      img.onload = () => {
+        loadedCount++;
+        if (loaderPct) loaderPct.textContent = Math.round((loadedCount / TOTAL_FRAMES) * 100) + '%';
+        if (loadedCount === TOTAL_FRAMES) onAllLoaded();
+      };
+      img.onerror = () => {
+        loadedCount++; // count errors too so we don't hang
+        if (loadedCount === TOTAL_FRAMES) onAllLoaded();
+      };
+      frames.push(img);
+    }
+  }
+
+  // ── Called when every frame is in RAM ──
+  function onAllLoaded() {
+    isReady = true;
+    // Hide loader with fade
+    if (loader) {
+      loader.style.opacity = '0';
+      setTimeout(() => { loader.style.display = 'none'; }, 700);
+    }
+    // Size canvas and paint first frame
+    resizeCanvas();
+    drawFrame(0);
+    // Start the render loop
+    rafId = requestAnimationFrame(tick);
+  }
+
+  // ── Keep canvas pixel-perfect (retina-aware) ──
+  function resizeCanvas() {
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2); // cap at 2x for perf
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // ── Draw a specific frame index (0-based) onto the canvas ──
+  function drawFrame(idx) {
+    idx = Math.max(0, Math.min(TOTAL_FRAMES - 1, idx));
+    if (idx === currentFrame) return; // already painted
+    currentFrame = idx;
+    const img = frames[idx];
+    if (!img || !img.complete || !img.naturalWidth) return;
+
+    const cw = canvas.getBoundingClientRect().width;
+    const ch = canvas.getBoundingClientRect().height;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+
+    // "object-cover" logic: scale to fill, crop overflow
+    const scale = Math.max(cw / iw, ch / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const dx = (cw - dw) / 2;
+    const dy = (ch - dh) / 2;
+
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  // ── Scroll progress scoped to hero section only ──
+  function getScrollProgress() {
+    if (!scrubSection) return 0;
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    const bounds = scrubSection.offsetHeight - window.innerHeight;
+    if (bounds <= 0) return 0;
+    return Math.max(0, Math.min(1, scrollY / bounds));
+  }
+
+  // ── Main render loop (runs at display refresh rate) ──
+  function tick() {
+    if (!isReady) { rafId = null; return; }
+
+    const progress = getScrollProgress();
+    targetFrame = Math.round(progress * (TOTAL_FRAMES - 1));
+
+    // Lerp for smoothness
+    const diff = targetFrame - lerpFrame;
+    if (Math.abs(diff) > 0.4) {
+      lerpFrame += diff * LERP;
+    } else {
+      lerpFrame = targetFrame;
+    }
+
+    drawFrame(Math.round(lerpFrame));
+
+    // Progress bar
+    if (progressBar) {
+      progressBar.style.width = (progress * 100).toFixed(1) + '%';
+    }
+
+    // Text panels
+    if (txt1 && txt2 && txt3) {
+      if (progress > 0.02 && progress < 0.30) {
+        txt1.style.opacity = '1'; txt1.style.transform = 'translateY(-50%) scale(1)';
+      } else {
+        txt1.style.opacity = '0'; txt1.style.transform = `translateY(calc(-50% + ${progress <= 0.02 ? '30px' : '-30px'})) scale(0.95)`;
+      }
+      if (progress >= 0.30 && progress < 0.60) {
+        txt2.style.opacity = '1'; txt2.style.transform = 'translateY(-50%) scale(1)';
+      } else {
+        txt2.style.opacity = '0'; txt2.style.transform = `translateY(calc(-50% + ${progress < 0.30 ? '30px' : '-30px'})) scale(0.95)`;
+      }
+      if (progress >= 0.60 && progress < 0.95) {
+        txt3.style.opacity = '1'; txt3.style.transform = 'translateY(-50%) scale(1)';
+      } else {
+        txt3.style.opacity = '0'; txt3.style.transform = `translateY(calc(-50% + ${progress < 0.60 ? '30px' : '-30px'})) scale(0.95)`;
+      }
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  // ── Resize handler ──
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    currentFrame = -1; // force redraw
+  });
+
+  // ── Boot ──
+  if (canvas && ctx) {
+    preloadFrames();
+  }
+})();
+
+/* ══════════════════════════════════════════════════
+   INTERSECTION OBSERVER — fade-entry animations
+   (design-taste skill: IntersectionObserver, not scroll listener)
+══════════════════════════════════════════════════ */
+(function () {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+  // Stagger each fade-entry section
+  document.querySelectorAll('.fade-entry').forEach((el, i) => {
+    el.style.transitionDelay = (i * 80) + 'ms';
+    observer.observe(el);
+  });
+})();
+
+/* ══════════════════════════════════════════════════
+   CART LOGIC
+══════════════════════════════════════════════════ */
+let cart = [];
+
+function formatCLP(n) {
+  return '$' + n.toLocaleString('es-CL');
+}
+
+function addToCart(name, price) {
+  const existing = cart.find(i => i.name === name);
+  if (existing) {
+    existing.qty++;
+  } else {
+    cart.push({ name, price, qty: 1 });
+  }
+  renderCart();
+  // Badge spring bounce
+  const badge = document.getElementById('cart-badge');
+  badge.style.transform = 'scale(1.5)';
+  setTimeout(() => { badge.style.transform = ''; }, 280);
+}
+
+function changeQty(name, delta) {
+  const item = cart.find(i => i.name === name);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cart = cart.filter(i => i.name !== name);
+  renderCart();
+}
+
+function clearCart() {
+  cart = [];
+  renderCart();
+}
+
+function renderCart() {
+  const container = document.getElementById('cart-items');
+  const emptyMsg  = document.getElementById('cart-empty');
+  const totalEl   = document.getElementById('cart-total');
+  const badgeEl   = document.getElementById('cart-badge');
+  const mobileCount = document.getElementById('mobile-cart-count');
+
+  const totalQty   = cart.reduce((s, i) => s + i.qty, 0);
+  const totalPrice = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  badgeEl.textContent    = totalQty;
+  mobileCount.textContent = totalQty;
+  totalEl.textContent    = formatCLP(totalPrice);
+
+  container.querySelectorAll('.cart-row').forEach(el => el.remove());
+
+  if (cart.length === 0) {
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+
+  cart.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'cart-row flex justify-between items-start gap-3';
+    div.innerHTML = `
+      <div class="flex flex-col flex-1 min-w-0">
+        <span class="text-sm font-medium truncate">${item.name}</span>
+        <span class="text-xs" style="color:rgba(208,194,209,0.5)">${formatCLP(item.price)} c/u</span>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <button onclick="changeQty('${item.name}', -1)"
+          class="w-7 h-7 flex items-center justify-center border text-on-surface-variant hover:text-white hover:border-primary transition-colors text-sm"
+          style="border-color:rgba(77,67,79,0.4)">−</button>
+        <span class="text-sm w-4 text-center">${item.qty}</span>
+        <button onclick="changeQty('${item.name}', 1)"
+          class="w-7 h-7 flex items-center justify-center border text-on-surface-variant hover:text-white hover:border-primary transition-colors text-sm"
+          style="border-color:rgba(77,67,79,0.4)">+</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function confirmOrder() {
+  if (cart.length === 0) return;
+  cart = [];
+  renderCart();
+  closeCart();
+  const toast = document.getElementById('toast');
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+}
+
+/* ── Cart drawer ── */
+let cartOpen = false;
+
+function toggleCart() { cartOpen ? closeCart() : openCart(); }
+
+function openCart() {
+  cartOpen = true;
+  document.getElementById('cart-drawer').style.transform = 'translateX(0)';
+  document.getElementById('cart-overlay').classList.remove('hidden');
+}
+
+function closeCart() {
+  cartOpen = false;
+  document.getElementById('cart-drawer').style.transform = 'translateX(100%)';
+  document.getElementById('cart-overlay').classList.add('hidden');
+}
+
+/* ── Tabs ── */
+function switchTab(tab) {
+  const comida  = document.getElementById('tab-comida-content');
+  const bebidas = document.getElementById('tab-bebidas-content');
+  const btnComida  = document.getElementById('tab-comida');
+  const btnBebidas = document.getElementById('tab-bebidas');
+
+  const activeClass   = 'text-secondary font-bold border-b-2 border-secondary flex items-center gap-2 py-1';
+  const inactiveClass = 'text-on-surface-variant/40 hover:text-white transition-all flex items-center gap-2 py-1';
+
+  if (tab === 'comida') {
+    comida.classList.remove('hidden');
+    bebidas.classList.add('hidden');
+    btnComida.className  = activeClass;
+    btnBebidas.className = inactiveClass;
+  } else {
+    bebidas.classList.remove('hidden');
+    comida.classList.add('hidden');
+    btnBebidas.className = activeClass;
+    btnComida.className  = inactiveClass;
+  }
+  // Re-trigger scroll to keep video in sync after tab change
+  window.dispatchEvent(new Event('scroll'));
+}
+
+/* ── Collapsible sections ── */
+function toggleSection(id) {
+  document.getElementById('section-' + id).classList.toggle('section-collapsed');
+  document.getElementById('chevron-' + id).classList.toggle('chevron-open');
+  // Notify scroll handler that page height changed
+  setTimeout(() => window.dispatchEvent(new Event('scroll')), 50);
+}
+
+/* ── Init ── */
+renderCart();
+</script>
+
+</body>
+</html>
